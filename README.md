@@ -1,1 +1,1 @@
-# voting
+# Voting Sucks
