@@ -14,20 +14,26 @@
 # 4. Binomial distribution plot?
 
 library(shiny)
-library(leaflet)
+library(ggplot2)
 library(maps)
 library(dplyr)
 library(readxl)
 
+# Load population and US geo-coordinate data, and merge the dataframes.
 
 statePop = read_excel("../data/master.xlsx")
-stateVect = statePop$Total
+statePop$region = tolower(statePop$State)
+stateGeo = map_data("state")
+mergedData = inner_join(statePop, stateGeo, by = 'region')
+
+# Creating a named vector to easily call population data in the server.
+
+stateVect = statePop$Population
 names(stateVect) = statePop$State
     
-votingOdds = function(population){
-    probability = dbinom(round(population*0.5), size = population, prob = 0.5)
-    result = paste(round(probability*100, 4), "%", " or 1 in ", 
-                   round(1/probability), sep = "")
+votingOdds = function(pop){
+    prob = dbinom(round(pop*0.5), size = pop, prob = 0.5)
+    result = paste(round(prob*100, 4), "%", " or 1 in ", round(1/prob), sep = "")
     return(result)
 }
 
@@ -36,18 +42,7 @@ ui <- fluidPage(
     
     selectInput(inputId = "state", 
                 label = "Pick Your State: ",
-                choices = c("Alabama", "Alaska", "Arizona", "Arkansas", 
-                            "California", "Colorado", "Connecticut", "Delaware",
-                            "Florida", "Georgia", "Hawaii", "Idaho", "Illinois",
-                            "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
-                            "Maine", "Maryland", "Massachusetts", "Michigan",
-                            "Minnesota", "Mississippi", "Missouri", "Montana",
-                            "Nebraska", "Nevada", "New Hampshire", "New Jersey",
-                            "New Mexico", "New York", "North Carolina", "North Dakota",
-                            "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island",
-                            "South Carolina", "South Dakota", "Tennessee", "Texas",
-                            "Utah", "Vermont", "Virginia", "Washington", "West Virginia",
-                            "Wisconsin", "Wyoming")),
+                choices = names(stateVect)),
     
     sliderInput(inputId = "votePercent",
                 label = "Percentage of Voters: ",
@@ -56,17 +51,24 @@ ui <- fluidPage(
                 value = 100),
     
     mainPanel(
-        textOutput("odds")
+        textOutput("odds"),
+        plotOutput("map")
     )
 )
 
 
 server <- function(input, output) {
-    
     output$odds = renderText({
         totalVoters = input$votePercent * unname(stateVect[input$state])
         votingOdds(totalVoters)
         })
+    
+    output$map = renderPlot({           
+        ggplot() + 
+            geom_polygon(data = mergedData, 
+                         aes(x = long, y = lat, group = group, fill = Population/1000000), 
+                            color = 'white', size = 0.2)
+    })
 
 }
 
