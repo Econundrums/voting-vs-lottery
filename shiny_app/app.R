@@ -8,10 +8,8 @@
 #
 
 # To Do:
-# 1. Choropleth map of varying state odds.
 # 2. Lottery comparisons.
 # 3. Make it look "pretty".
-# 4. Binomial distribution plot?
 
 library(shiny)
 library(ggplot2)
@@ -19,55 +17,67 @@ library(maps)
 library(dplyr)
 library(readxl)
 
-# Load population and US geo-coordinate data, and merge the dataframes.
+# Load population, US geo-coordinate, and Powerball data. 
 
-statePop = read_excel("../data/master.xlsx")
-statePop$region = tolower(statePop$State)
+statePop = read_excel("../data/master.xlsx", sheet = "State Pop 18+")
+powerball = read_excel("../data/master.xlsx", sheet = "Powerball")
 stateGeo = map_data("state")
+
+# Merge population and geo-coordinate data.
+
+statePop$region = tolower(statePop$State)
 mergedData = inner_join(statePop, stateGeo, by = 'region')
 
 # Creating a named vector to easily call population data in the server.
 
 stateVect = statePop$Population
 names(stateVect) = statePop$State
-    
-votingOdds = function(pop){
-    prob = dbinom(round(pop*0.5), size = pop, prob = 0.5)
-    result = paste(round(prob*100, 4), "%", " or 1 in ", round(1/prob), sep = "")
-    return(result)
-}
 
 ui <- fluidPage(
-    titlePanel("Odds Your Vote Matters"),
+    titlePanel("Voting Sucks"),
     
-    selectInput(inputId = "state", 
-                label = "Pick Your State: ",
-                choices = names(stateVect)),
-    
-    sliderInput(inputId = "votePercent",
-                label = "Percentage of Voters: ",
-                min = 0,
-                max = 100,
-                value = 100),
-    
-    mainPanel(
+    sidebarPanel(
+        selectInput(inputId = "state", 
+                    label = "State: ",
+                    choices = names(stateVect)),
+        
+        sliderInput(inputId = "votePercent",
+                    label = "Voter Turnout (%): ",
+                    min = 0,
+                    max = 100,
+                    value = 100),
+        
+        sliderInput(inputId = "demPercent",
+                    label = "Democrat Candidate Bias (%): ",
+                    min = 0,
+                    max = 100,
+                    value = 50),
+        
+        helpText("Odds Your Vote Matters"),
         textOutput("odds"),
-        plotOutput("map")
+        ),
+
+    mainPanel(
+        tableOutput("powerOdds")
     )
 )
 
 
 server <- function(input, output) {
+    
     output$odds = renderText({
-        totalVoters = input$votePercent * unname(stateVect[input$state])
-        votingOdds(totalVoters)
+        population = round((input$votePercent/100) * unname(stateVect[input$state]))
+        probability = dbinom(round(population*0.5), size = population, prob = 0.5)
+        paste(round(probability*100, 4), "%", " or 1 in ", round(1/probability), 
+              sep = "")
         })
     
-    output$map = renderPlot({           
-        ggplot() + 
-            geom_polygon(data = mergedData, 
-                         aes(x = long, y = lat, group = group, fill = Population/1000000), 
-                            color = 'white', size = 0.2)
+    output$powerOdds = renderTable({
+        population = round((input$votePercent/100) * unname(stateVect[input$state]))
+        demProb = input$demPercent/100
+        logProb = dbinom(round(population*0.5), size = population, prob = demProb, log = TRUE)
+        powerball[,'More Likely to Win'] = paste(floor(logProb/log(powerball$Odds)), ' times', sep = '')
+        powerball[,c('Match', 'Odds of Winning', 'Prize', 'More Likely to Win')]
     })
 
 }
