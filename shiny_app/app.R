@@ -1,17 +1,3 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
-# To Do:
-# 3. Make it look "pretty".
-# 4. Get choropleth map highlighting different state voter turnouts.
-# 5. Swap between light and dark theme?
-
 library(shiny)
 library(shinythemes)
 library(ggplot2)
@@ -79,6 +65,7 @@ server <- function(input, output) {
         })
     
     output$powerOdds = renderTable({
+        
         voterTurnout = round((input$votePercent/100) * voterData[voterData$state == input$state, "vep"])
         demProb = input$demPercent/100
         logProb = dbinom(round(voterTurnout*0.5), size = voterTurnout, prob = demProb, log = TRUE)
@@ -90,7 +77,8 @@ server <- function(input, output) {
         align = 'c',
         striped = TRUE,
         spacing = 'm',
-        width = '100%')
+        width = '100%'
+        )
     
     output$map = renderPlotly({
         if (input$mapOptions == 'Voter Turnout'){
