@@ -1,0 +1,82 @@
+---
+title: "Don't Vote. Play The Lottery Instead (App)."
+output: html_document
+---
+
+### Introduction
+
+Inspired by this [old Slate article](https://slate.com/culture/2004/09/don-t-vote-play-the-lottery-instead.html), as well as constant harrassment from the "eVeRy vOtE cOuNtS!!!" zealots, this RShiny app allows users to see just how little their individual vote matters in the Presidential General Election.
+
+### Table of Contents
+
+[Requirements](#requirements)
+
+[How to Use the App](#instructions)
+
+[The Math Behind the Numbers](#math)
+
+[About the Data](#data)
+
+[Sources](#sources)
+
+<a name="requirements"></a>
+
+### Requirements
+
+If you just want to play around with the app itself, go [here](http://econundrums-rshiny.com/shiny/voting/shiny_app/).
+
+If you want to tinker with the code yourself, you'll need to have [R installed](https://www.r-project.org/) along with the following packages.
+
+```r
+install.packages(c("shiny", "shinythemes", "ggplot2", "plotly", "usmap", "dplyr", "readxl"))
+```
+If the above code snippet doesn't work, try installing each of the above packages individually (e.g. `install.packages('shiny')`).
+
+For ease of use, especially if you're a beginner, I <b>strongly</b> recommend you also download [RStudio Desktop](https://rstudio.com/products/rstudio/download/) after you download R, then open and launch the app from there.
+
+<a name="instructions"></a>
+
+### How to Use the App
+
+<b>Control Widgets</b>
+
+* <i>State</i>: Choose your state, which will query its respective voting eligible population (VEP) from the master spreadsheet/database (which is also included in this repository).   
+
+* <i>Voter Turnout (%):</i> Set the % of voter turnout for a state's given VEP. If you're unsure what your chosen state's voter turnout is, there's a choropleth map of the USA included that will give you an estimate based on voter turnout for the 2020 General presidential election.
+
+* <i> Bias Towards Democrats (%):</i> Set the % of total voters that vote for the Democratic candidate. For example, a selection of 51% means 51% of the total voters will vote for the Democratic candidate and 49% will vote for the Republican one. A completely unbiased electorate will have this option set at 50%. Unfortunately, unlike voter turnout, there's no graph or feature yet that will provide a suggested value if you don't already have an idea of your state's preferences. Seeking to add this in the future. 
+
+<b>Outputs</b>
+
+* <i>Odds</i>: Below the "Bias Towards Democrats (%)" will be the odds your vote makes a difference in the nomination of the president. By making a difference, I mean the odds the outcome of the election will be determined by one vote. Only the "State" and "Voter Turnout (%)" widgets affect this value.
+
+* <i>Powerball Table</i>: To the right of the input panel is a table showing your odds of winning various Powerball prizes relative to your selections. The only column affected will be the one titled "More Likely to Win", which tells you how much more likely you will win <i>consecutively</i> given your choices. All control widgets in the input panel affect these numbers.
+
+<a name="math"></a>
+
+### The Math and Logic Behind the Numbers
+
+The methods to derive the results presented in the Slate article can be seen [here](http://www.landsburg.com/link.pdf). While the formulas seem to work, the author unfortunately doesn't elaborate on how they're derived. Regardless, with a little knowledge of probability theory and some intuition we can reach the same conclusions.
+
+Lets say, for example, Betty will usually vote for the Democratic candidate, but has sometimes been known to vote Republican if she likes them well enough. George is the same way, but vice-versa (i.e. he likes Republicans more). How do we account for Betty's and George's behavior, along with everyone else like them? One way to think about it is voter's choices are similar to the result of a coin flip where the coin lands on one side with probability $p$ and on the other with probability $(1-p)$. In other words, if we let $p$ be the probability someone votes for the Democratic candidate, someone like Betty will vote Democrat with probability $p > 0.5$, while for someone like George it'll be $p < 0.5$. Taken in the aggregate, we can think of <i>each state</i> as having some probability $p$ of prefering Democratic candidates and $(1-p)$ for Republicans. So is there something we could use to give us the probability that, for a given $p$ value, the decision to award all the electoral college votes of a given state to one of the candidates would be determined by a tie-breaking vote? Yes -- it's called the [binomial distribution](https://en.wikipedia.org/wiki/Binomial_distribution). Specifically, we can get the probability using the formula $Pr(k = \frac{n}{2}) = \binom{n}{k} \cdot p^k(1-p)^{n-k}$ where $n$ is your state's population and $k = \frac{n}{2}$ because we want the total state's votes to be split between the Democratic and Republican runners.
+
+To compute how many times you're more likely to choose a winning Powerball combination consecutively, define the probability of getting a specific Powerball prize as $P$. Then the probability you'll win this prize consecutively is $P^N$, where $N$ is the number of times you play. Then the probability you'll win consecutively is equal to the probability your vote makes a difference if $P^N = Pr(k = \frac{n}{2})$. Taking the natural log and solving for $N$, we get $N = \frac{ln(Pr(k = \frac{n}{2}))}{ln(P)}$. This formula can be interpreted as the probability your vote will matter is equal to the probability of winning this Powerball prize $N$ times.
+
+<a name="data"></a>
+
+### About the Data
+
+Getting the odds for the different Powerball prizes can be found [here](https://www.powerball.com/games/home). You could compute them yourself if you know the rules to the game, but I'm not doing that here.
+
+General election voting data by state was taken from the [United States Election Projects](http://www.electproject.org/2020g) and slightly modified to accomidate certain map and ggplot features.
+
+For the choropleth map showing 2020 voter turnout, this value is based on the feature <i>VEP Turnout Rate (Highest Office)</i>, which in this case is the Presidential office. Noteable exceptions include Louisiana's and Montana's rates, which are based on the US Senate election because those were the offices with the hightest voter turnout rates in those states.
+
+<a name="sources"></a>
+
+### Sources
+
+* Landsburg, Steven (2004, Sept 29th) "Don't Vote. Play The Lottery Instead." Slate. https://slate.com/culture/2004/09/don-t-vote-play-the-lottery-instead.html
+
+* McDonald, Michael P. (2020, Dec 7th) "2020 November General Election Turnout Rates" United States Elections Project. Date Accessed: 1/9/2021.
+
