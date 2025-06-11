@@ -75,14 +75,56 @@ server <- function(input, output) {
         )
     
     output$map = renderPlotly({
-       
-        p = plot_usmap(data = voterData, values = 'VEP Turnout Rate (Highest Office)') + 
-            scale_fill_continuous(name = "Voter Turnout (%)", label = scales::comma) +
-            theme(legend.position = "right")
-        
-        ggplotly(p)
-        
-    })
+    
+    # State name to abbreviation conversion
+    state_abbr <- c(
+        "Alabama" = "AL", "Alaska" = "AK", "Arizona" = "AZ", "Arkansas" = "AR",
+        "California" = "CA", "Colorado" = "CO", "Connecticut" = "CT", "Delaware" = "DE",
+        "Florida" = "FL", "Georgia" = "GA", "Hawaii" = "HI", "Idaho" = "ID",
+        "Illinois" = "IL", "Indiana" = "IN", "Iowa" = "IA", "Kansas" = "KS",
+        "Kentucky" = "KY", "Louisiana" = "LA", "Maine" = "ME", "Maryland" = "MD",
+        "Massachusetts" = "MA", "Michigan" = "MI", "Minnesota" = "MN", "Mississippi" = "MS",
+        "Missouri" = "MO", "Montana" = "MT", "Nebraska" = "NE", "Nevada" = "NV",
+        "New Hampshire" = "NH", "New Jersey" = "NJ", "New Mexico" = "NM", "New York" = "NY",
+        "North Carolina" = "NC", "North Dakota" = "ND", "Ohio" = "OH", "Oklahoma" = "OK",
+        "Oregon" = "OR", "Pennsylvania" = "PA", "Rhode Island" = "RI", "South Carolina" = "SC",
+        "South Dakota" = "SD", "Tennessee" = "TN", "Texas" = "TX", "Utah" = "UT",
+        "Vermont" = "VT", "Virginia" = "VA", "Washington" = "WA", "West Virginia" = "WV",
+        "Wisconsin" = "WI", "Wyoming" = "WY", "District of Columbia" = "DC"
+    )
+    
+    # Add abbreviations to data
+    voterData$state_abbr <- state_abbr[voterData$state]
+    
+    # Prepare hover text
+    voterData$hover_text <- paste0(
+        "<b>", voterData$state, "</b><br>",
+        "Voter Turnout: ", voterData$`VEP Turnout Rate (Highest Office)`, "%<br>",
+        "Eligible Population: ", format(voterData$`Voting-Eligible Population (VEP)`, big.mark = ",")
+    )
+    
+    # Create plotly choropleth map
+    plot_ly(
+        data = voterData,
+        type = "choropleth",
+        locations = ~state_abbr,
+        locationmode = "USA-states",
+        z = ~`VEP Turnout Rate (Highest Office)`,
+        text = ~hover_text,
+        hovertemplate = "%{text}<extra></extra>",
+        colorscale = list(c(0, "lightblue"), c(1, "darkblue")),
+        colorbar = list(title = "Voter Turnout (%)")
+    ) %>%
+    layout(
+        geo = list(
+            scope = "usa",
+            projection = list(type = "albers usa"),
+            showlakes = TRUE,
+            lakecolor = toRGB("white")
+        )
+    )
+    
+})
     
 }
 
